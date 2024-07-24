@@ -11,6 +11,7 @@ interface ISeedWallet {
   seed: string;
 }
 
+// dotenv
 dotenv.config();
 initEccLib(ecc);
 
