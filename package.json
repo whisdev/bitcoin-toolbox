@@ -6,7 +6,10 @@
   "scripts": {
     "merge": "npx tsx UTXO_merge",
     "send": "npx tsx UTXO_send",
-    "split": "npx tsx UTXO_split"
+    "split": "npx tsx UTXO_split",
+    "ordinal_transfer": "npx tsx Ordinal_transfer",
+    "transfer": "npx tsx RUNE_transfer",
+    "test": "npx tsx test"
   },
   "keywords": [],
   "author": "",

@@ -34,9 +34,6 @@ const ECPair: ECPairAPI = ECPairFactory(ecc);
 const network = networks.testnet;
 const networkType: string = networkConfig.networkType;
 
-// const seed: string = process.env.MNEMONIC as string;
-// const wallet = new SeedWallet({ networkType: networkType, seed: seed });
-
 const privateKey: string = process.env.PRIVATE_KEY as string;
 const wallet = new WIFWallet({ networkType: networkType, privateKey: privateKey });
 
@@ -62,29 +59,37 @@ interface IUtxo {
   scriptpubkey?: string;
 }
 
-async function pre_transfer(runeID: string, amount: number) {
+async function mintWithTaproot(runeID1: string, runeID2: string, amount: number) {
 
-  const runeBlockNumber = parseInt(runeID.split(":")[0]);
-  const runeTxout = parseInt(runeID.split(":")[1]);
+  const runeBlockNumber1 = parseInt(runeID1.split(":")[0]);
+  const runeTxout1 = parseInt(runeID1.split(":")[1]);
+
+  const runeBlockNumber2 = parseInt(runeID2.split(":")[0]);
+  const runeTxout2 = parseInt(runeID2.split(":")[1]);
 
   const keyPair = wallet.ecPair;
   const edicts: any = [];
+
   edicts.push({
-    id: new RuneId(runeBlockNumber, runeTxout),
-    amount: 11,
+    id: new RuneId(runeBlockNumber1, runeTxout1),
+    amount,
     output: 1,
   });
+
   edicts.push({
-    id: new RuneId(runeBlockNumber, runeTxout),
-    amount: 89,
+    id: new RuneId(runeBlockNumber2, runeTxout2),
+    amount,
     output: 2,
   });
+
   const mintstone = new Runestone(
     edicts,
     none(),
     none(),
     none()
   );
+
+  console.log('mintstone :>> ', mintstone);
 
   const tweakedSigner = tweakSigner(keyPair, { network });
   // Generate an address from the tweaked public key
@@ -95,101 +100,21 @@ async function pre_transfer(runeID: string, amount: number) {
   const address = p2pktr.address ?? "";
   console.log(`Waiting till UTXO is detected at this Address: ${address}`);
 
-  // https://open-api-testnet.unisat.io/v1/indexer/address/tb1pcngsk49thk8e5m2ndfqv9sycltrjr4rx0prwhwr22mujl99y6szqw2kv0f/runes/2587772:289/utxo
+  // https://open-api-testnet.unisat.io/v1/indexer/address/tb1pw7dtq290mkjq36q3yv5h2s3wz79k2696zftd0ctsydruwjxktlrs8x8cmh/runes/2587772:289/utxo
 
-  const runeUTXO = {
-    txid: 'a036e7826c4e8f6130e755848f2b2eb830c4ac18f17df771db68e80f99a18d87',
-    vout: 1,
-    value: 546
-  };
-
-  // https://open-api.unisat.io/v1/indexer/address/tb1pcngsk49thk8e5m2ndfqv9sycltrjr4rx0prwhwr22mujl99y6szqw2kv0f/utxo-data
-
-  const btcUTXO = {
-    txid: 'f0d400bbabd83e0e11a9079781ad596ec5a5ea67571dc4ec61df6594b7e94466',
-    vout: 1,
-    value: 5678287,
-  }
-
-  const psbt = new Psbt({ network });
-  psbt.addInput({
-    hash: runeUTXO.txid,
-    index: runeUTXO.vout,
-    witnessUtxo: { value: runeUTXO.value, script: p2pktr.output! },
-    tapInternalKey: toXOnly(keyPair.publicKey),
-  });
-
-  psbt.addInput({
-    hash: btcUTXO.txid,
-    index: btcUTXO.vout,
-    witnessUtxo: { value: btcUTXO.value, script: p2pktr.output! },
-    tapInternalKey: toXOnly(keyPair.publicKey),
-  });
-
-  psbt.addOutput({
-    script: mintstone.encipher(),
-    value: 0,
-  });
-
-  psbt.addOutput({
-    address: DESTINATION_ADDRESS, // rune receive address
-    value: 546,
-  });
-
-  psbt.addOutput({
-    address: DESTINATION_ADDRESS, // rune receive address
-    value: 546,
-  });
-
-  const fee = 100000;
-
-  const change = btcUTXO.value - fee - 1092;
-
-  psbt.addOutput({
-    address: DESTINATION_ADDRESS, // change address
-    value: change,
-  });
-
-  await signAndSend(tweakedSigner, psbt, address as string);
-}
-
-async function mintWithTaproot(runeID: string, amount: number) {
-
-  const runeBlockNumber = parseInt(runeID.split(":")[0]);
-  const runeTxout = parseInt(runeID.split(":")[1]);
-
-  const keyPair = wallet.ecPair;
-  const edicts: any = [];
-  edicts.push({
-    id: new RuneId(runeBlockNumber, runeTxout),
-    amount,
-    output: 50,
-  });
-  const mintstone = new Runestone(
-    edicts,
-    none(),
-    none(),
-    none()
-  );
-
-  const tweakedSigner = tweakSigner(keyPair, { network });
-  // Generate an address from the tweaked public key
-  const p2pktr = payments.p2tr({
-    pubkey: toXOnly(tweakedSigner.publicKey),
-    network,
-  });
-  const address = p2pktr.address ?? "";
-  console.log(`Waiting till UTXO is detected at this Address: ${address}`);
-
-  // https://open-api-testnet.unisat.io/v1/indexer/address/tb1pcngsk49thk8e5m2ndfqv9sycltrjr4rx0prwhwr22mujl99y6szqw2kv0f/runes/2587772:289/utxo
-
-  const runeUTXO = {
+  const runeUTXO1 = {
     txid: '6f82a1d12b3bc236bf4fe269a4571161f1893c106536726f1ed5bb28f4d853a9',
     vout: 2,
     value: 546
   };
 
-  // https://open-api.unisat.io/v1/indexer/address/tb1pcngsk49thk8e5m2ndfqv9sycltrjr4rx0prwhwr22mujl99y6szqw2kv0f/utxo-data
+  const runeUTXO2 = {
+    txid: '6f82a1d12b3bc236bf4fe269a4571161f1893c106536726f1ed5bb28f4d853a9',
+    vout: 2,
+    value: 546
+  };
+
+  // https://open-api.unisat.io/v1/indexer/address/tb1pw7dtq290mkjq36q3yv5h2s3wz79k2696zftd0ctsydruwjxktlrs8x8cmh/utxo-data
 
   const btcUTXO = {
     txid: '6f82a1d12b3bc236bf4fe269a4571161f1893c106536726f1ed5bb28f4d853a9',
@@ -199,9 +124,16 @@ async function mintWithTaproot(runeID: string, amount: number) {
 
   const psbt = new Psbt({ network });
   psbt.addInput({
-    hash: runeUTXO.txid,
-    index: runeUTXO.vout,
-    witnessUtxo: { value: runeUTXO.value, script: p2pktr.output! },
+    hash: runeUTXO1.txid,
+    index: runeUTXO1.vout,
+    witnessUtxo: { value: runeUTXO1.value, script: p2pktr.output! },
+    tapInternalKey: toXOnly(keyPair.publicKey),
+  });
+
+  psbt.addInput({
+    hash: runeUTXO2.txid,
+    index: runeUTXO2.vout,
+    witnessUtxo: { value: runeUTXO2.value, script: p2pktr.output! },
     tapInternalKey: toXOnly(keyPair.publicKey),
   });
 
@@ -235,7 +167,7 @@ async function mintWithTaproot(runeID: string, amount: number) {
 }
 
 // main
-mintWithTaproot('2587772:289', 89);
+mintWithTaproot('2587772:289','2587772:289', 10);
 // pre_transfer('2587772:289', 11);
 
 export const blockstream = new axios.Axios({
